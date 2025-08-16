@@ -1,0 +1,42 @@
+{# templates/pages/dashboard.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Accueil - XRide{% endblock %}
+
+{% block body %}
+<div class="profile-container">
+    <div class="profile-name">
+        Bonjour {{ app.user.nom|default('Chauffeur') }},
+    </div>
+
+    <img src="{{ asset('download.jpg') }}" alt="Photo du Chauffeur" class="profile-picture">
+
+    <div class="rating">
+        <i class="fas fa-star"></i>
+        <i class="fas fa-star"></i>
+        <i class="fas fa-star"></i>
+        <i class="fas fa-star"></i>
+        <i class="fas fa-star-half-alt"></i>
+    </div>
+
+    <button onclick="window.location.href='{{ path("add_ride") }}'">Vendre</button>
+    <button onclick="window.location.href='{{ path("in_progress") }}'">Mes courses</button>
+
+    <form method="post" action="{{ path('app_logout') }}" style="margin-top: 1em;">
+        <button type="submit" class="btn btn-danger">Déconnexion</button>
+    </form>
+</div>
+
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {# Tu peux supprimer ces scripts si navigation.js et dashboard.js ne font plus rien #}
+    {# <script src="{{ asset('scripts/navigation.js') }}"></script> #}
+    {# <script src="{{ asset('dashboard.js') }}"></script> #}
+{% endblock %}
+
+
+
+

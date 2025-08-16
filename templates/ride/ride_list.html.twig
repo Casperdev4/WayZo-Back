@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Voir les Courses Disponibles - XRide{% endblock %}
+
+{% block body %}
+<div class="ride-list-container">
+    {% if rides is not empty %}
+        {% for ride in rides %}
+            <div class="ride-item">
+                <h1>Courses Disponibles</h1>
+                <p><strong>Société :</strong> {{ ride.chauffeur.nom }}</p>
+                <p><strong>Prise en charge :</strong> {{ ride.depart }}</p>
+                <p><strong>Dépôt :</strong> {{ ride.destination }}</p>
+                <p><strong>Date :</strong> {{ ride.date|date('d/m/Y') }}</p>
+                <p><strong>Heure :</strong> {{ ride.time|date('H:i') }}</p>
+                <p><strong>Nombre de passagers :</strong> {{ ride.passengers }}</p>
+                <p><strong>Nombre de valises :</strong> {{ ride.luggage }}</p>
+                <p><strong>Véhicule :</strong> {{ ride.vehicle }}</p>
+                <p><strong>Commentaire :</strong> {{ ride.comment }}</p>
+                <p><strong>Distance :</strong> —</p>
+                <div class="strong2"><p>EUR {{ ride.price }}</p></div>
+
+                {# Bouton Accepter la course — on peut le gérer par formulaire POST ou JS plus tard #}
+                <form method="post" action="{{ path('accept_ride', { id: ride.id }) }}">
+                    <button type="submit" class="btn btn-primary">Accepter</button>
+                </form>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>Aucune course disponible pour le moment.</p>
+    {% endif %}
+</div>
+
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {# JS supprimé car tout est dynamique via Twig maintenant #}
+{% endblock %}
+
+
+
+

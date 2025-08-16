@@ -1,3 +1,530 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 body {
-    background-color: skyblue;
+    background-color: #fff;
+    margin: 0;
+    padding: 0;
+    font-family: 'Montserrat', sans-serif;
+}
+
+h1 {
+    font-size: 32px;
+    color: #222;
+    text-align: center;
+    margin-top: 5%;
+}
+
+h2 {
+    margin-top: 3%;
+    margin-bottom: 10%;
+    font-size: 24px;
+    color: #fff;
+}
+strong {color: #fff;font-weight: 300;font-size: 18px;}
+
+.registration-container {
+    width: 80%;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 30px;
+    background-color: #3f3f3f;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.registration-container h1 {
+    font-size: 26px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #fff;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+label {
+    margin-bottom: 1%;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #222;
+    border-radius: 4px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+input[type="file"] {
+    background-color: #fff;
+    color: #000;
+}
+
+button[type="submit"] {
+    width: 30%;
+    margin-left: auto;
+    margin-right: auto;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 20px;
+}
+
+button[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+
+/* Styles pour la page login */
+.form-container {
+    background-color: #3f3f3f;
+    margin-top: 10%;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 70%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+.form-container h2 {
+    margin-top: 3%;
+    margin-bottom: 10%;
+}
+.form-container input {
+    width: 80%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #222;
+    border-radius: 4px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+.form-container button {
+    width: 60%;
+    padding: 10px;
+    margin: auto;
+    margin-bottom: 3%;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.form-container button:hover {
+    background-color: #0056b3;
+}
+.form-container p {
+    margin-top: 10px;
+    color: #fff;
+}
+.form-container a {
+    color: #007bff;
+    text-decoration: none;
+}
+.form-container a:hover {
+    text-decoration: underline;
+}
+
+/* Styles pour la page index */
+.profile-container {
+    text-align: center;
+    margin: 50px auto;
+    padding: 20px;
+    width: 80%;
+    background-color: #000000;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+.profile-picture {
+    width: 30%;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    margin-top: 3%;
+    margin-bottom: 3%;
+}
+.profile-name {
+    font-size: 24px;
+    margin-bottom: 10px;
+    color: #fff;
+}
+.rating {
+    font-size: 24px;
+    color: #ffcc00;
+    margin: 10px 0;
+}
+.rating i {
+    margin: 0 2px;
+}
+
+/* Styles pour la page add ride */
+.add-ride-container {
+    padding: 20px;
+    width: 75%;
+    margin: 0 auto;
+    margin-top: 10%;
+    margin-bottom: 25%;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #222;
+}
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+}
+label {
+    font-size: 16px;
+    color: #fff;
+    text-align: left;
+    margin-top: 3%;
+}
+input[type="text"],
+input[type="date"],
+input[type="time"],
+input[type="number"],
+select,
+textarea {
+    padding: 8px;
+    border: 1px solid #222;
+    border-radius: 5px;
+    font-size: 16px;
+    margin-top: -3%;
+}
+textarea {
+    resize: vertical;
+}
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007BFF;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 3%;
+    margin-bottom: 3%;
+}
+button:hover {
+    background-color: #0056b3;
+}
+/* Style pour le bouton de retour */
+button[type="button"] {
+    background-color: #6c757d;
+    margin-top: 20px;
+}
+button[type="button"]:hover {
+    background-color: #5a6268;
+}
+
+/* Styles pour la page ride list */
+.ride-list-container {
+    width: 100%;
+    padding: 20px;
+    margin: auto;
+}
+.ride-list-container h1 {
+    font-size: 25px;
+    color: #fff;
+    margin-bottom: 5%;
+}
+.ride-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10%;
+    background-color: #222;
+    position: relative;
+    overflow: hidden;
+    width: 70%;
+    margin-left: auto;
+    margin-right: auto;
+}
+.ride-item p {
+    font-size: 16px;
+    margin-top: 3%;
+    margin-bottom: 5%;
+    margin-left: 5%;
+    color: #cccccc;
+}
+.strong2 p {font-weight: 300;font-size: 22px;text-align: right;margin-bottom: 7%;margin-right: 5%;}
+/* Styles pour le slider */
+.slider-container {
+    width: 100%;
+    height: 60px;
+    background-color: #ddd;
+    position: relative;
+    border-radius: 30px;
+    overflow: hidden;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+}
+.slider {
+    background: linear-gradient(90deg, #4a90e2, #0056b3);
+    height: 100%;
+    width: 20%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 30px;
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center; /* Centre verticalement */
+    justify-content: center; /* Centre horizontalement */
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+}
+.slider-text {
+    position: absolute;
+    width: 100%;
+    margin-left: 15%;
+    text-align: center;
+    color: #333333; /* Couleur du texte */
+    font-size: 18px;
+    font-weight: bold;
+}
+.slider.accepted {
+    background-color: #000000; /* Couleur du fond une fois accepté */
+    color: white;
+    font-size: 16px;
+    text-align: center;
+    line-height: 60px;
+    height: 60px;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+.slider::before {
+    content: '\2192'; /* Unicode de la flèche vers la droite */
+    font-size: 30px;
+}
+
+/* Styles pour la in progress */
+.in-progress-container {
+    width: 100%;
+    padding: 20px;
+    margin: auto;
+}
+.add-ride-container h1 {
+    font-size: 28px;
+    color: #222;
+    margin-top: 3%;
+    margin-bottom: 3%;
+}
+
+.in-progress-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10%;
+    background-color: #222;
+    position: relative;
+    overflow: hidden;
+}
+.in-progress-item h2 {
+    font-size: 22px;
+    margin-top: 2%;
+    margin-bottom: 7%;
+    text-align: center;
+    color: #fff;
+}
+.in-progress-item p {
+    font-size: 16px;
+    margin-top: 3%;
+    margin-bottom: 5%;
+    margin-left: 5%;
+    color: #cccccc;
+}
+/* Styles pour les slider */
+.slider-container2 {
+    width: 100%;
+    height: 60px;
+    background-color: #ddd;
+    position: relative;
+    border-radius: 30px;
+    overflow: hidden;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+}
+.slider2 {
+    background: linear-gradient(90deg, #82ff79, #0d5e00);
+    height: 100%;
+    width: 20%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 30px;
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center; /* Centre verticalement */
+    justify-content: center; /* Centre horizontalement */
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+}
+.slider-text2 {
+    position: absolute;
+    width: 100%;
+    margin-left: 15%;
+    text-align: center;
+    color: #333333; /* Couleur du texte */
+    font-size: 18px;
+    font-weight: bold;
+}
+.slider2.accepted {
+    background-color: #000000; /* Couleur du fond une fois accepté */
+    color: white;
+    font-size: 16px;
+    text-align: center;
+    line-height: 60px;
+    height: 60px;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+.slider2::before {
+    content: '\2192'; /* Unicode de la flèche vers la droite */
+    font-size: 30px;
+}
+.menu-button {
+    cursor: pointer;
+    font-size: 24px;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #fff;
+}
+.menu {
+    position: absolute;
+    top: 30px;
+    right: 10px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+.menu ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+.menu ul li {
+    padding: 10px;
+    cursor: pointer;
+}
+.menu ul li:hover {
+    background-color: #f0f0f0;
+}
+
+
+/* Styles pour la page Historique */
+.history-container {
+    width: 100%;
+    padding: 20px;
+    margin: auto;
+}
+.history-container h2 {
+    font-size: 25px;
+    color: #fff;
+}
+.history-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10%;
+    background-color: #222;
+    position: relative;
+    overflow: hidden;
+}
+.history-item h3 {
+    font-size: 22px;
+    margin-top: 2%;
+    text-align: center;
+    color: #fff;
+}
+.history-item p {
+    font-size: 16px;
+    margin-top: 3%;
+    margin-bottom: 5%;
+    color: #cccccc;
+}
+button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #0056b3;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+button:hover {
+    background-color: #004494;
+}
+
+/* Styles pour la barre de navigation en bas */
+.bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    position: fixed;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background-color: #222;
+    color: #fff;
+    box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+.bottom-nav a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 16px;
+    padding: 10px 20px;
+    text-align: center;
+    flex: 1;
+}
+.bottom-nav a.active {
+    background-color: #0056b3;
+    border-radius: 5px;
+}
+.bottom-nav a:hover {
+    background-color: #555;
+}
+.bottom-nav a i {
+    display: block;
+    font-size: 24px;
 }

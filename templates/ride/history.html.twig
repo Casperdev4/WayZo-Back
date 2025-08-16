@@ -1,0 +1,59 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Historique des Courses - XRide{% endblock %}
+
+{% block body %}
+<div class="history-container">
+    <h2>Courses effectuées</h2>
+
+    {% if coursesAcceptees is not empty %}
+        {% for ride in coursesAcceptees %}
+            <div class="ride-item bg-green-50 border p-3 my-2 rounded">
+                <p><strong>Date :</strong> {{ ride.date|date('d/m/Y') }}</p>
+                <p><strong>Heure :</strong> {{ ride.time|date('H:i') }}</p>
+                <p><strong>Client :</strong> {{ ride.clientName }}</p>
+                <p><strong>Trajet :</strong> {{ ride.depart }} → {{ ride.destination }}</p>
+                <p><strong>Véhicule :</strong> {{ ride.vehicle }}</p>
+                <p><strong>Prix :</strong> EUR {{ ride.price }}</p>
+
+                <span class="badge bg-green-600 text-white px-2 py-1 rounded">Course effectuée</span>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>Aucune course effectuée.</p>
+    {% endif %}
+
+    <h2 class="mt-6">Courses vendues</h2>
+
+    {% if coursesVendues is not empty %}
+        {% for ride in coursesVendues %}
+            <div class="ride-item bg-yellow-50 border p-3 my-2 rounded">
+                <p><strong>Date :</strong> {{ ride.date|date('d/m/Y') }}</p>
+                <p><strong>Heure :</strong> {{ ride.time|date('H:i') }}</p>
+                <p><strong>Client :</strong> {{ ride.clientName }}</p>
+                <p><strong>Trajet :</strong> {{ ride.depart }} → {{ ride.destination }}</p>
+                <p><strong>Véhicule :</strong> {{ ride.vehicle }}</p>
+                <p><strong>Prix :</strong> EUR {{ ride.price }}</p>
+
+                <span class="badge bg-yellow-600 text-white px-2 py-1 rounded">Course vendue</span>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>Aucune course vendue.</p>
+    {% endif %}
+
+    <button onclick="window.location.href='{{ path("app_home") }}'" class="mt-4">Retour</button>
+</div>
+
+
+{% endblock %}
+
+
+
+
+
+
+
+
+
+

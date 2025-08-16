@@ -1,0 +1,79 @@
+{# templates/pages/add_ride.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Proposer une Course - XRide{% endblock %}
+
+{% block body %}
+<div class="add-ride-container">
+    <h2>Proposer une Course</h2>
+    <form id="rideForm" method="post" action="{{ path('add_ride') }}">
+        <label for="clientName">Nom du client :</label>
+        <input type="text" id="clientName" name="clientName" required>
+
+        <label for="clientContact">Contact client :</label>
+        <input type="number" id="clientContact" name="clientContact" required>
+
+        <label for="origin">Prise en charge :</label>
+        <input type="text" id="origin" name="origin" required>
+
+        <label for="destination">Dépôt :</label>
+        <input type="text" id="destination" name="destination" required>
+
+        <label for="date">Date :</label>
+        <input type="date" id="date" name="date" required>
+
+        <label for="time">Heure :</label>
+        <input type="time" id="time" name="time" required>
+
+        <label for="passengers">Nombre de passagers :</label>
+        <select id="passengers" name="passengers" required>
+            {% for i in 1..12 %}
+                <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="luggage">Nombre de valises :</label>
+        <select id="luggage" name="luggage" required>
+            {% for i in 0..8 %}
+                <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="vehicle">Véhicule :</label>
+        <select id="vehicle" name="vehicle" required>
+            <option value="">Sélectionner...</option>
+            <option value="Classe E">Classe E</option>
+            <option value="Classe S">Classe S</option>
+            <option value="Classe V">Classe V</option>
+            <option value="other">Autre</option>
+        </select>
+
+        <label for="boosterSeat">Réhausseur :</label>
+        <select id="boosterSeat" name="boosterSeat" required>
+            {% for i in 0..3 %}
+                <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="babySeat">Siège bébé :</label>
+        <select id="babySeat" name="babySeat" required>
+            {% for i in 0..3 %}
+                <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="price">Prix (€) :</label>
+        <input type="number" id="price" name="price" step="0.01" required>
+
+        <label for="comment">Commentaire :</label>
+        <textarea id="comment" name="comment" rows="4" placeholder="Ajoutez un commentaire..."></textarea>
+
+        <button type="submit">Vendre</button>
+    </form>
+</div>
+
+
+{% endblock %}
+
+
+

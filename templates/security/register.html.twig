@@ -1,0 +1,83 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inscription - XRide{% endblock %}
+
+{% block body %}
+<div class="registration-container">
+    <h1>Inscription Chauffeur</h1>
+
+    {% for message in app.flashes('error') %}
+        <div class="text-red-500 mb-2">{{ message }}</div>
+    {% endfor %}
+
+    <form method="post" action="{{ path('app_register') }}" enctype="multipart/form-data">
+
+        <label for="lastName">Nom</label>
+        <input type="text" id="lastName" name="lastName">
+
+        <label for="firstName">Prénom</label>
+        <input type="text" id="firstName" name="firstName">
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email">
+
+        <label for="phone">Téléphone</label>
+        <input type="text" id="phone" name="phone">
+
+        <label for="dob">Date de naissance</label>
+        <input type="date" id="dob" name="dob">
+
+        <label for="siret">SIRET</label>
+        <input type="text" id="siret" name="siret">
+
+        <label for="companyName">Nom de la société</label>
+        <input type="text" id="companyName" name="companyName">
+
+        <label for="password">Mot de passe</label>
+        <input type="password" id="password" name="password">
+
+        <label for="confirmPassword">Confirmer le mot de passe</label>
+        <input type="password" id="confirmPassword" name="confirmPassword">
+
+        <label for="vehicleSelect">Véhicule utilisé</label>
+        <select id="vehicleSelect" name="vehicleSelect">
+            <option value="">-- Sélectionner --</option>
+            <option value="Classe E">Classe E</option>
+            <option value="Classe S">Classe S</option>
+            <option value="Classe V">Classe V</option>
+            <option value="Tesla">Tesla</option>
+        </select>
+
+        <label for="address">Adresse</label>
+        <input type="text" id="address" name="address">
+
+        <label for="city">Ville</label>
+        <input type="text" id="city" name="city">
+
+        <label for="postalCode">Code postal</label>
+        <input type="text" id="postalCode" name="postalCode">
+
+        <label for="permis">Permis de conduire</label>
+        <input type="file" id="permis" name="permis" accept=".pdf, .png, .webp, .jpg, .jpeg">
+
+        <label for="kbis">KBIS</label>
+        <input type="file" id="kbis" name="kbis" accept=".pdf, .png, .webp, .jpg, .jpeg">
+
+        <label for="vtcCard">Carte VTC</label>
+        <input type="file" id="vtcCard" name="vtcCard" accept=".pdf, .png, .webp, .jpg, .jpeg">
+
+        <label for="macaron">Macaron</label>
+        <input type="file" id="macaron" name="macaron" accept=".pdf, .png, .webp, .jpg, .jpeg">
+
+        <label for="identityCardPhoto">Pièce d'identité</label>
+        <input type="file" id="identityCardPhoto" name="identityCardPhoto" accept=".png, .jpg, .jpeg">
+
+        <button type="submit">Inscription</button>
+    </form>
+</div>
+{% endblock %}
+
+
+
+
+

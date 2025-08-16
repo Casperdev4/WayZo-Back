@@ -1,0 +1,123 @@
+<header>
+  <nav
+    class="relative flex w-full flex-wrap items-center justify-between bg-zinc-50 py-2 shadow-dark-mild dark:bg-neutral-700 lg:py-4"
+    data-twe-navbar-ref>
+    <div class="flex w-full flex-wrap items-center justify-between px-3">
+      <div>
+        <a class="mx-2 my-1 flex items-center" href="{{ path('app_home') }}">
+          <img
+            class="me-2"
+            src="https://tecdn.b-cdn.net/img/logo/te-transparent-noshadows.webp"
+            style="height: 20px"
+            alt="XRide Logo"
+            loading="lazy" />
+        </a>
+      </div>
+
+      <!-- Hamburger -->
+      <button
+        class="block border-0 bg-transparent px-2 text-black/50 dark:text-white/60 lg:hidden"
+        type="button"
+        data-twe-collapse-init
+        data-twe-target="#navbarSupportedContent4"
+        aria-controls="navbarSupportedContent4"
+        aria-expanded="false"
+        aria-label="Toggle navigation">
+        <span class="[&>svg]:w-7 [&>svg]:stroke-black/50 dark:[&>svg]:stroke-white/60">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" d="M3 6.75A.75.75 0 013.75 6h16.5a.75.75 0 010 1.5H3.75A.75.75 0 013 6.75zM3 12a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75A.75.75 0 013 12zm0 5.25a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z" clip-rule="evenodd" />
+          </svg>
+        </span>
+      </button>
+
+      <!-- Menu -->
+      <div
+        class="!visible mt-2 hidden flex-grow basis-[100%] items-center lg:mt-0 lg:!flex lg:basis-auto"
+        id="navbarSupportedContent4"
+        data-twe-collapse-item>
+        
+        <!-- Liens -->
+        <ul class="list-style-none me-auto flex flex-col ps-0 lg:mt-1 lg:flex-row" data-twe-navbar-nav-ref>
+          <li class="my-4 ps-2 lg:my-0 lg:pe-1 lg:ps-2" data-twe-nav-item-ref>
+            <a
+              class="text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white lg:px-2"
+              href="{{ path('app_home') }}"
+              data-twe-nav-link-ref>
+              Accueil
+            </a>
+          </li>
+
+          {% set user = app.user ?? null %}
+
+          {% if user %}
+            <li class="my-4 ps-2 lg:my-0 lg:pe-1 lg:ps-2" data-twe-nav-item-ref>
+              <a
+                class="text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white lg:px-2"
+                href="{{ path('ride_list') }}"
+                data-twe-nav-link-ref>
+                Courses
+              </a>
+            </li>
+            <li class="my-4 ps-2 lg:my-0 lg:pe-1 lg:ps-2" data-twe-nav-item-ref>
+              <a
+                class="text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white lg:px-2"
+                href="{{ path('add_ride') }}"
+                data-twe-nav-link-ref>
+                Proposer une course
+              </a>
+            </li>
+            <li class="my-4 ps-2 lg:my-0 lg:pe-1 lg:ps-2" data-twe-nav-item-ref>
+              <a
+                class="text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white lg:px-2"
+                href="{{ path('in_progress') }}"
+                data-twe-nav-link-ref>
+                Courses en cours
+              </a>
+            </li>
+            <li class="my-4 ps-2 lg:my-0 lg:pe-1 lg:ps-2" data-twe-nav-item-ref>
+              <a
+                class="text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white lg:px-2"
+                href="{{ path('ride_history') }}"
+                data-twe-nav-link-ref>
+                Historique
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+
+        <!-- Droite : Auth / User -->
+        <div class="flex items-center gap-3">
+          {% if user %}
+            {% if user.nom is defined %}
+              <span class="text-sm text-neutral-700 dark:text-white">Bonjour {{ user.prenom }}</span>
+            {% else %}
+              <span class="text-sm text-neutral-700 dark:text-white">Bonjour Chauffeur</span>
+            {% endif %}
+            <form method="post" action="{{ path('app_logout') }}">
+              <button
+                type="submit"
+                class="text-sm px-3 py-1 text-white bg-red-600 rounded hover:bg-red-700">
+                Déconnexion
+              </button>
+            </form>
+          {% else %}
+            <a
+              href="{{ path('app_login') }}"
+              class="text-sm text-blue-600 hover:underline">
+              Connexion
+            </a>
+            <a
+              href="{{ path('app_register') }}"
+              class="text-sm text-white bg-blue-600 px-4 py-2 rounded hover:bg-blue-500">
+              Inscription
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+
+
+
+

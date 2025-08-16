@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Courses en Cours - XRide{% endblock %}
+
+{% block body %}
+<div class="in-progress-container">
+    <h1>Courses en Cours</h1>
+
+    <div class="in-progress-list">
+        {% for ride in rides %}
+            <div class="in-progress-item">
+                <h2>{{ ride.date|date('d/m/Y') }} | {{ ride.time|date('H:i') }}</h2>
+                <div class="ride-header">
+                    <p><strong>Société :</strong> {{ app.user.nom }}</p>
+                    <div class="menu-button" data-id="{{ ride.id }}">•••</div>
+                    <div class="menu" id="menu-{{ ride.id }}" style="display: none;">
+                        <ul>
+                            <li class="report-issue" data-id="{{ ride.id }}">Signaler un problème</li>
+                            <li class="cancel-ride" data-id="{{ ride.id }}">Annuler la course</li>
+                        </ul>
+                    </div>
+                </div>
+                <p><strong>Client :</strong> {{ ride.clientName }}</p>
+                <p><strong>Contact client :</strong> {{ ride.clientContact }}</p>
+                <p><strong>Prise en charge :</strong> {{ ride.depart }}</p>
+                <p><strong>Dépôt :</strong> {{ ride.destination }}</p>
+                <p><strong>Véhicule :</strong> {{ ride.vehicle }}</p>
+                <p><strong>Réhausseurs :</strong> {{ ride.boosterSeat }}</p>
+                <p><strong>Sièges bébé :</strong> {{ ride.babySeat }}</p>
+                <p><strong>Commentaire :</strong> {{ ride.comment }}</p>
+                <div class="strong2"><p>EUR {{ ride.price }}</p></div>
+
+                <div class="status-container">
+                    {% if ride.status == 'acceptée' %}
+                        <form method="post" action="{{ path('update_ride_status', { id: ride.id, status: 'en cours' }) }}">
+                            <button type="submit" class="btn btn-primary">Démarrer</button>
+                        </form>
+                    {% elseif ride.status == 'en cours' %}
+                        <form method="post" action="{{ path('update_ride_status', { id: ride.id, status: 'prise en charge' }) }}">
+                            <button type="submit" class="btn btn-warning">Prise en charge</button>
+                        </form>
+                    {% elseif ride.status == 'prise en charge' %}
+                        <form method="post" action="{{ path('update_ride_status', { id: ride.id, status: 'client déposé' }) }}">
+                            <button type="submit" class="btn btn-success">Client déposé</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <p>Aucune course à venir.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
