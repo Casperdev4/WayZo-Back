@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facture {{ facture.numero }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #333;
+            background: #fff;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 20px;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        
+        .logo span {
+            color: #1e40af;
+        }
+        
+        .facture-info {
+            text-align: right;
+        }
+        
+        .facture-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 5px;
+        }
+        
+        .facture-numero {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .facture-date {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        /* Parties */
+        .parties {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+        }
+        
+        .partie {
+            width: 45%;
+        }
+        
+        .partie-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .partie-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 5px;
+        }
+        
+        .partie-details {
+            font-size: 11px;
+            color: #555;
+        }
+        
+        .partie-details p {
+            margin-bottom: 2px;
+        }
+        
+        /* Course Details */
+        .course-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .course-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .course-item {
+            font-size: 11px;
+        }
+        
+        .course-item label {
+            display: block;
+            color: #666;
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        
+        .course-item span {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        /* Table */
+        .table-container {
+            margin-bottom: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #1e40af;
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        
+        th:last-child {
+            text-align: right;
+        }
+        
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 12px;
+        }
+        
+        td:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        .description-cell {
+            color: #555;
+            font-size: 11px;
+        }
+        
+        /* Totals */
+        .totals {
+            width: 300px;
+            margin-left: auto;
+            margin-bottom: 40px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 12px;
+        }
+        
+        .total-row.subtotal {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .total-row.grand-total {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e40af;
+            border-top: 2px solid #1e40af;
+            padding-top: 15px;
+            margin-top: 10px;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .footer p {
+            margin-bottom: 5px;
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-issued {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        
+        .status-paid {
+            background: #d1fae5;
+            color: #059669;
+        }
+        
+        .status-cancelled {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        /* Mentions légales */
+        .legal {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            font-size: 9px;
+            color: #64748b;
+        }
+        
+        .legal-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                Way<span>Zo</span>
+                <div style="font-size: 10px; color: #666; font-weight: normal; margin-top: 5px;">
+                    Plateforme VTC
+                </div>
+            </div>
+            <div class="facture-info">
+                <div class="facture-title">FACTURE</div>
+                <div class="facture-numero">N° {{ facture.numero }}</div>
+                <div class="facture-date">
+                    <p>Date d'émission : {{ facture.dateEmission|date('d/m/Y') }}</p>
+                    {% if facture.dateEcheance %}
+                    <p>Date d'échéance : {{ facture.dateEcheance|date('d/m/Y') }}</p>
+                    {% endif %}
+                </div>
+                <div style="margin-top: 10px;">
+                    <span class="status-badge status-{{ facture.statut }}">
+                        {% if facture.statut == 'issued' %}En attente{% endif %}
+                        {% if facture.statut == 'paid' %}Payée{% endif %}
+                        {% if facture.statut == 'cancelled' %}Annulée{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parties -->
+        <div class="parties">
+            <div class="partie">
+                <div class="partie-title">Émetteur</div>
+                <div class="partie-name">{{ facture.emetteurInfo.raisonSociale ?? facture.emetteurInfo.nomComplet }}</div>
+                <div class="partie-details">
+                    <p>{{ facture.emetteurInfo.nomComplet }}</p>
+                    {% if facture.emetteurInfo.adresse %}
+                    <p>{{ facture.emetteurInfo.adresse }}</p>
+                    {% endif %}
+                    <p>{{ facture.emetteurInfo.email }}</p>
+                    {% if facture.emetteurInfo.telephone %}
+                    <p>Tél : {{ facture.emetteurInfo.telephone }}</p>
+                    {% endif %}
+                    {% if facture.emetteurInfo.siret %}
+                    <p>SIRET : {{ facture.emetteurInfo.siret }}</p>
+                    {% endif %}
+                    {% if facture.emetteurInfo.tvaIntracom %}
+                    <p>TVA Intracom : {{ facture.emetteurInfo.tvaIntracom }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="partie">
+                <div class="partie-title">Destinataire</div>
+                <div class="partie-name">{{ facture.destinataireInfo.raisonSociale ?? facture.destinataireInfo.nomComplet }}</div>
+                <div class="partie-details">
+                    <p>{{ facture.destinataireInfo.nomComplet }}</p>
+                    {% if facture.destinataireInfo.adresse %}
+                    <p>{{ facture.destinataireInfo.adresse }}</p>
+                    {% endif %}
+                    <p>{{ facture.destinataireInfo.email }}</p>
+                    {% if facture.destinataireInfo.telephone %}
+                    <p>Tél : {{ facture.destinataireInfo.telephone }}</p>
+                    {% endif %}
+                    {% if facture.destinataireInfo.siret %}
+                    <p>SIRET : {{ facture.destinataireInfo.siret }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Details -->
+        <div class="course-section">
+            <div class="section-title">Détails de la course</div>
+            <div class="course-grid">
+                <div class="course-item">
+                    <label>Date & Heure</label>
+                    <span>{{ facture.courseDetails.date }} à {{ facture.courseDetails.heure }}</span>
+                </div>
+                <div class="course-item">
+                    <label>Client</label>
+                    <span>{{ facture.courseDetails.nomClient }}</span>
+                </div>
+                <div class="course-item">
+                    <label>Départ</label>
+                    <span>{{ facture.courseDetails.depart }}</span>
+                </div>
+                <div class="course-item">
+                    <label>Arrivée</label>
+                    <span>{{ facture.courseDetails.arrivee }}</span>
+                </div>
+                <div class="course-item">
+                    <label>Véhicule</label>
+                    <span>{{ facture.courseDetails.vehicule }}</span>
+                </div>
+                <div class="course-item">
+                    <label>Passagers</label>
+                    <span>{{ facture.courseDetails.passagers }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table des prestations -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Désignation</th>
+                        <th>Montant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong>Prestation de transport VTC</strong>
+                            <div class="description-cell">
+                                {{ facture.description|nl2br }}
+                            </div>
+                        </td>
+                        <td>{{ facture.montantHT|number_format(2, ',', ' ') }} €</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Totals -->
+        <div class="totals">
+            <div class="total-row subtotal">
+                <span>Total HT</span>
+                <span>{{ facture.montantHT|number_format(2, ',', ' ') }} €</span>
+            </div>
+            <div class="total-row">
+                <span>TVA ({{ facture.tauxTVA }}%)</span>
+                <span>{{ facture.montantTVA|number_format(2, ',', ' ') }} €</span>
+            </div>
+            <div class="total-row grand-total">
+                <span>Total TTC</span>
+                <span>{{ facture.montantTTC|number_format(2, ',', ' ') }} €</span>
+            </div>
+        </div>
+
+        <!-- Mentions légales -->
+        <div class="legal">
+            <div class="legal-title">Mentions légales</div>
+            <p>En cas de retard de paiement, une pénalité de 3 fois le taux d'intérêt légal sera appliquée, ainsi qu'une indemnité forfaitaire de 40€ pour frais de recouvrement.</p>
+            <p>Pas d'escompte pour paiement anticipé.</p>
+            {% if facture.emetteurInfo.siret %}
+            <p>SIRET : {{ facture.emetteurInfo.siret }} - {{ facture.emetteurInfo.raisonSociale ?? facture.emetteurInfo.nomComplet }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Facture générée automatiquement par WayZo - Plateforme de mise en relation VTC</p>
+            <p>{{ facture.numero }} | {{ facture.dateEmission|date('d/m/Y H:i') }}</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -9,6 +9,11 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: RideRepository::class)]
 class Ride
 {
+    // Constantes de visibilité
+    public const VISIBILITY_PUBLIC = 'public';
+    public const VISIBILITY_GROUPE = 'groupe';
+    public const VISIBILITY_PRIVATE = 'prive';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -66,6 +71,22 @@ class Ride
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true)]
     private ?Chauffeur $chauffeurAccepteur = null;
+
+    /**
+     * Groupe de confiance pour les courses privées
+     * Si null = course publique visible par tous
+     */
+    #[ORM\ManyToOne(targetEntity: Groupe::class)]
+    private ?Groupe $groupe = null;
+
+    /**
+     * Visibilité de la course
+     * public = tous les chauffeurs
+     * groupe = uniquement les membres du groupe
+     * prive = uniquement le chauffeur sélectionné
+     */
+    #[ORM\Column(length: 20)]
+    private string $visibility = 'public';
 
     public function getId(): ?int
     {
@@ -258,7 +279,74 @@ class Ride
         $this->chauffeurAccepteur = $chauffeur;
         return $this;
     }
+
+    public function getGroupe(): ?Groupe
+    {
+        return $this->groupe;
+    }
+
+    public function setGroupe(?Groupe $groupe): static
+    {
+        $this->groupe = $groupe;
+        return $this;
+    }
+
+    public function getVisibility(): string
+    {
+        return $this->visibility;
+    }
+
+    public function setVisibility(string $visibility): static
+    {
+        $this->visibility = $visibility;
+        return $this;
+    }
+
+    /**
+     * Vérifie si la course est publique
+     */
+    public function isPublic(): bool
+    {
+        return $this->visibility === self::VISIBILITY_PUBLIC;
+    }
+
+    /**
+     * Vérifie si la course est réservée au groupe
+     */
+    public function isGroupeOnly(): bool
+    {
+        return $this->visibility === self::VISIBILITY_GROUPE && $this->groupe !== null;
+    }
+
+    /**
+     * Vérifie si un chauffeur peut voir cette course
+     */
+    public function isVisibleBy(Chauffeur $chauffeur): bool
+    {
+        // Course publique = visible par tous
+        if ($this->isPublic()) {
+            return true;
+        }
+
+        // Course de groupe = vérifier l'appartenance
+        if ($this->isGroupeOnly() && $this->groupe !== null) {
+            foreach ($this->groupe->getMembres() as $membre) {
+                if ($membre->getChauffeur() === $chauffeur) {
+                    return true;
+                }
+            }
+            // Le propriétaire du groupe peut aussi voir
+            if ($this->groupe->getProprietaire() === $chauffeur) {
+                return true;
+            }
+        }
+
+        // Le chauffeur qui a créé la course peut toujours la voir
+        if ($this->chauffeur === $chauffeur) {
+            return true;
+        }
+
+        return false;
+    }
 }
-
-
 

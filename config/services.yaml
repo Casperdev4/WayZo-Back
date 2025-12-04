@@ -1,8 +1,3 @@
-# This file is the entry point to configure your own services.
-# Files in the packages/ subdirectory configure your dependencies.
-
-# Put parameters here that don't need to change on each machine where the app is deployed
-# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     uploads_directory: '%kernel.project_dir%/public/uploads'
 
@@ -23,6 +18,8 @@ services:
         autoconfigure: true
         public: true
 
+    # 🔥 LISTENER POUR AJOUTER USER DANS LA RÉPONSE LOGIN /api/login
+    App\EventListener\JWTCreatedListener:
+        tags:
+            - { name: kernel.event_listener, event: lexik_jwt_authentication.on_authentication_success, method: onAuthenticationSuccessResponse }
 
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones

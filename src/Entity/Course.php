@@ -91,6 +91,21 @@ class Course
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
+    /**
+     * Groupe de confiance pour les courses privées
+     * Si null = course publique visible par tous
+     */
+    #[ORM\ManyToOne(targetEntity: Groupe::class, inversedBy: 'courses')]
+    private ?Groupe $groupe = null;
+
+    /**
+     * Visibilité de la course
+     * public = tous les chauffeurs
+     * private = uniquement les membres du groupe
+     */
+    #[ORM\Column(length: 20)]
+    private string $visibility = 'public';
+
     public function __construct()
     {
         $this->messages = new ArrayCollection();
@@ -383,6 +398,7 @@ class Course
         return $this->babySeat;
     }
 
+
     public function setBabySeat(int $babySeat): static
     {
         $this->babySeat = $babySeat;
@@ -412,5 +428,60 @@ class Course
         $this->createdAt = $createdAt;
 
         return $this;
+    }
+
+    public function getGroupe(): ?Groupe
+    {
+        return $this->groupe;
+    }
+
+    public function setGroupe(?Groupe $groupe): static
+    {
+        $this->groupe = $groupe;
+        return $this;
+    }
+
+    public function getVisibility(): string
+    {
+        return $this->visibility;
+    }
+
+    public function setVisibility(string $visibility): static
+    {
+        $this->visibility = $visibility;
+        return $this;
+    }
+
+    public function isPublic(): bool
+    {
+        return $this->visibility === 'public';
+    }
+
+    public function isPrivate(): bool
+    {
+        return $this->visibility === 'private' && $this->groupe !== null;
+    }
+
+    /**
+     * Vérifie si un chauffeur peut voir cette course
+     */
+    public function isVisibleBy(Chauffeur $chauffeur): bool
+    {
+        // Courses publiques visibles par tous
+        if ($this->isPublic()) {
+            return true;
+        }
+
+        // Le vendeur peut toujours voir sa course
+        if ($this->chauffeurVendeur && $this->chauffeurVendeur->getId() === $chauffeur->getId()) {
+            return true;
+        }
+
+        // Si course privée avec groupe, vérifier l'appartenance
+        if ($this->groupe) {
+            return $this->groupe->hasMembre($chauffeur);
+        }
+
+        return false;
     }
 }

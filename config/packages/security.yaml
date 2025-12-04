@@ -10,27 +10,47 @@ security:
                 property: email
 
     firewalls:
+
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
+        # 🔥 LOGIN JWT POUR REACT
+        api_login:
+            pattern: ^/api/login$
+            stateless: true
+            provider: app_user_provider
+
+            json_login:
+                check_path: /api/login
+                username_path: email      
+                password_path: password
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+        # 🔥 TOUTE L’API PROTÉGÉE PAR JWT
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: app_user_provider
+            jwt: ~
+
+        # 🔐 LOGIN SYMFONY /connexion
         main:
             lazy: true
             provider: app_user_provider
+            
             form_login:
                 login_path: app_login
                 check_path: app_login
+            
             logout:
                 path: app_logout
 
-
-when@test:
-    security:
-        password_hashers:
-            App\Entity\Chauffeur:
-                algorithm: auto
-                cost: 4
-                time_cost: 3
-                memory_cost: 10
+    access_control:
+        - { path: ^/api/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/debug-login, roles: PUBLIC_ACCESS }
+        - { path: ^/connexion, roles: PUBLIC_ACCESS }
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 
 
