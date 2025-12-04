@@ -2,6 +2,7 @@
 
 namespace App\Controller\Api;
 
+use App\Repository\AvisRepository;
 use App\Repository\ChauffeurRepository;
 use App\Repository\RideRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -12,7 +13,8 @@ class DashboardController extends BaseApiController
 {
     public function __construct(
         private RideRepository $rideRepository,
-        private ChauffeurRepository $chauffeurRepository
+        private ChauffeurRepository $chauffeurRepository,
+        private AvisRepository $avisRepository
     ) {}
 
     #[Route('/api/dashboard/chauffeur', name: 'api_dashboard_chauffeur', methods: ['GET'])]
@@ -36,6 +38,10 @@ class DashboardController extends BaseApiController
             }
             return $total;
         }, 0);
+
+        // Calcul de la note moyenne depuis les avis
+        $avgRating = $this->avisRepository->getAverageRating($user);
+        $avisCount = $this->avisRepository->countAvisForChauffeur($user);
         
         // Formater les courses récentes
         $recentRides = array_slice($myRides, -10);
@@ -59,7 +65,8 @@ class DashboardController extends BaseApiController
                 'pendingRides' => count($pendingRides),
                 'completedRides' => count($completedRides),
                 'revenue' => $revenue,
-                'rating' => 4.8, // TODO: Calculer depuis les avis
+                'avgRating' => $avgRating ?? 0,
+                'avisCount' => $avisCount,
             ],
             'myRides' => $formattedRides,
             'chauffeur' => [
@@ -97,14 +104,22 @@ class DashboardController extends BaseApiController
         
         // Formater les chauffeurs
         $formattedChauffeurs = array_map(function($chauffeur) {
+            $avgRating = $this->avisRepository->getAverageRating($chauffeur);
+            $avisCount = $this->avisRepository->countAvisForChauffeur($chauffeur);
+            $ridesCount = count($this->rideRepository->findBy(['chauffeur' => $chauffeur]));
+            
             return [
                 'id' => $chauffeur->getId(),
+                'name' => $chauffeur->getPrenom() . ' ' . $chauffeur->getNom(),
                 'nom' => $chauffeur->getNom(),
                 'prenom' => $chauffeur->getPrenom(),
                 'email' => $chauffeur->getEmail(),
                 'telephone' => $chauffeur->getTel(),
-                'rating' => 4.5, // TODO: Calculer depuis les avis
-                'ridesCount' => 0, // TODO: Compter les courses
+                'vehicle' => $chauffeur->getVehicle(),
+                'rating' => $avgRating ?? 0,
+                'avisCount' => $avisCount,
+                'totalRides' => $ridesCount,
+                'totalRevenue' => 0, // TODO: Calculer les revenus
             ];
         }, array_slice($allChauffeurs, 0, 20));
         
@@ -137,9 +152,12 @@ class DashboardController extends BaseApiController
                 'pendingRides' => count($pendingRides),
                 'completedRides' => count($completedRides),
                 'totalRevenue' => $totalRevenue,
+                'activeRides' => count($pendingRides),
             ],
+            'topChauffeurs' => $formattedChauffeurs,
             'chauffeurs' => $formattedChauffeurs,
             'rides' => $formattedRides,
+            'recentRides' => $formattedRides,
         ]);
     }
 

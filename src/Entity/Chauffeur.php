@@ -109,6 +109,24 @@ class Chauffeur implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Document::class, mappedBy: 'chauffeur', cascade: ['persist', 'remove'])]
     private Collection $documents;
 
+    /**
+     * Rides créés par ce chauffeur (nouvelle entité Ride)
+     */
+    #[ORM\OneToMany(targetEntity: Ride::class, mappedBy: 'chauffeur')]
+    private Collection $rides;
+
+    /**
+     * Avis donnés par ce chauffeur
+     */
+    #[ORM\OneToMany(targetEntity: Avis::class, mappedBy: 'auteur')]
+    private Collection $avisDonnes;
+
+    /**
+     * Avis reçus par ce chauffeur
+     */
+    #[ORM\OneToMany(targetEntity: Avis::class, mappedBy: 'chauffeurNote')]
+    private Collection $avisRecus;
+
     public function __construct()
     {
         $this->coursesVendues = new ArrayCollection();
@@ -120,6 +138,9 @@ class Chauffeur implements UserInterface, PasswordAuthenticatedUserInterface
         $this->favorisDe = new ArrayCollection();
         $this->customRoles = new ArrayCollection();
         $this->documents = new ArrayCollection();
+        $this->rides = new ArrayCollection();
+        $this->avisDonnes = new ArrayCollection();
+        $this->avisRecus = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -460,6 +481,92 @@ class Chauffeur implements UserInterface, PasswordAuthenticatedUserInterface
         if ($this->documents->removeElement($document)) {
             if ($document->getChauffeur() === $this) {
                 $document->setChauffeur(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Avis>
+     */
+    public function getAvisDonnes(): Collection
+    {
+        return $this->avisDonnes;
+    }
+
+    public function addAvisDonne(Avis $avis): static
+    {
+        if (!$this->avisDonnes->contains($avis)) {
+            $this->avisDonnes->add($avis);
+            $avis->setAuteur($this);
+        }
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Avis>
+     */
+    public function getAvisRecus(): Collection
+    {
+        return $this->avisRecus;
+    }
+
+    public function addAvisRecu(Avis $avis): static
+    {
+        if (!$this->avisRecus->contains($avis)) {
+            $this->avisRecus->add($avis);
+            $avis->setChauffeurNote($this);
+        }
+        return $this;
+    }
+
+    /**
+     * Calcule la note moyenne du chauffeur
+     */
+    public function getAverageRating(): ?float
+    {
+        if ($this->avisRecus->isEmpty()) {
+            return null;
+        }
+        
+        $total = 0;
+        foreach ($this->avisRecus as $avis) {
+            $total += $avis->getNote();
+        }
+        
+        return round($total / $this->avisRecus->count(), 1);
+    }
+
+    /**
+     * Retourne le nombre d'avis reçus
+     */
+    public function getAvisCount(): int
+    {
+        return $this->avisRecus->count();
+    }
+
+    /**
+     * @return Collection<int, Ride>
+     */
+    public function getRides(): Collection
+    {
+        return $this->rides;
+    }
+
+    public function addRide(Ride $ride): static
+    {
+        if (!$this->rides->contains($ride)) {
+            $this->rides->add($ride);
+            $ride->setChauffeur($this);
+        }
+        return $this;
+    }
+
+    public function removeRide(Ride $ride): static
+    {
+        if ($this->rides->removeElement($ride)) {
+            if ($ride->getChauffeur() === $this) {
+                $ride->setChauffeur(null);
             }
         }
         return $this;

@@ -106,6 +106,12 @@ class Course
     #[ORM\Column(length: 20)]
     private string $visibility = 'public';
 
+    /**
+     * Avis lié à cette course (un seul avis par course)
+     */
+    #[ORM\OneToOne(targetEntity: Avis::class, mappedBy: 'course', cascade: ['persist', 'remove'])]
+    private ?Avis $avis = null;
+
     public function __construct()
     {
         $this->messages = new ArrayCollection();
@@ -483,5 +489,42 @@ class Course
         }
 
         return false;
+    }
+
+    public function getAvis(): ?Avis
+    {
+        return $this->avis;
+    }
+
+    public function setAvis(?Avis $avis): static
+    {
+        // Gestion bidirectionnelle
+        if ($avis === null && $this->avis !== null) {
+            $this->avis->setCourse(null);
+        }
+
+        if ($avis !== null && $avis->getCourse() !== $this) {
+            $avis->setCourse($this);
+        }
+
+        $this->avis = $avis;
+        return $this;
+    }
+
+    /**
+     * Vérifie si la course a déjà un avis
+     */
+    public function hasAvis(): bool
+    {
+        return $this->avis !== null;
+    }
+
+    /**
+     * Vérifie si la course peut recevoir un avis
+     * (course terminée et pas encore d'avis)
+     */
+    public function canBeRated(): bool
+    {
+        return $this->statutExecution === 'terminee' && !$this->hasAvis();
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Controller\Api;
 
 use App\Entity\Chauffeur;
+use App\Repository\AvisRepository;
 use App\Repository\ChauffeurRepository;
 use App\Repository\RideRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -18,6 +19,7 @@ class ChauffeurController extends BaseApiController
     public function __construct(
         private ChauffeurRepository $chauffeurRepository,
         private RideRepository $rideRepository,
+        private AvisRepository $avisRepository,
         private EntityManagerInterface $em,
         private UserPasswordHasherInterface $passwordHasher
     ) {}
@@ -55,6 +57,8 @@ class ChauffeurController extends BaseApiController
         
         $data = array_map(function($chauffeur) {
             $ridesCount = count($this->rideRepository->findBy(['chauffeur' => $chauffeur]));
+            $avgRating = $this->avisRepository->getAverageRating($chauffeur);
+            $avisCount = $this->avisRepository->countAvisForChauffeur($chauffeur);
             
             return [
                 'id' => $chauffeur->getId(),
@@ -67,8 +71,9 @@ class ChauffeurController extends BaseApiController
                 'siret' => $chauffeur->getSiret(),
                 'vehicle' => $chauffeur->getVehicle(),
                 'img' => '/img/avatars/thumb-' . ($chauffeur->getId() % 15 + 1) . '.jpg',
-                'status' => 'active',
-                'rating' => 4.5, // TODO: Calculer depuis les avis
+                'status' => $chauffeur->getStatus(),
+                'rating' => $avgRating ?? 0,
+                'avisCount' => $avisCount,
                 'ridesCount' => $ridesCount,
                 'totalSpent' => 0, // TODO: Calculer
                 'createdAt' => '2024-01-01', // TODO: Ajouter champ createdAt
@@ -97,6 +102,11 @@ class ChauffeurController extends BaseApiController
         // Récupérer les courses
         $rides = $this->rideRepository->findBy(['chauffeur' => $chauffeur], ['date' => 'DESC'], 10);
         
+        // Récupérer les stats d'avis
+        $avgRating = $this->avisRepository->getAverageRating($chauffeur);
+        $avisCount = $this->avisRepository->countAvisForChauffeur($chauffeur);
+        $ratingDistribution = $this->avisRepository->getRatingDistribution($chauffeur);
+        
         return new JsonResponse([
             'id' => $chauffeur->getId(),
             'name' => $chauffeur->getPrenom() . ' ' . $chauffeur->getNom(),
@@ -112,8 +122,10 @@ class ChauffeurController extends BaseApiController
             'vehicle' => $chauffeur->getVehicle(),
             'dateNaissance' => $chauffeur->getDateNaissance()?->format('Y-m-d'),
             'img' => '/img/avatars/thumb-' . ($chauffeur->getId() % 15 + 1) . '.jpg',
-            'status' => 'active',
-            'rating' => 4.5,
+            'status' => $chauffeur->getStatus(),
+            'rating' => $avgRating ?? 0,
+            'avisCount' => $avisCount,
+            'ratingDistribution' => $ratingDistribution,
             'recentRides' => array_map(function($ride) {
                 return [
                     'id' => $ride->getId(),
@@ -241,10 +253,81 @@ class ChauffeurController extends BaseApiController
             return new JsonResponse(['error' => 'Chauffeur non trouvé'], 404);
         }
         
-        $this->em->remove($chauffeur);
-        $this->em->flush();
+        $conn = $this->em->getConnection();
         
-        return new JsonResponse(['message' => 'Chauffeur supprimé'], 200);
+        try {
+            // Commencer une transaction
+            $conn->beginTransaction();
+            
+            // Supprimer les avis donnés et reçus
+            $conn->executeStatement('DELETE FROM avis WHERE auteur_id = ? OR chauffeur_note_id = ?', [$id, $id]);
+            
+            // Mettre à null les références dans les courses
+            $conn->executeStatement('UPDATE course SET chauffeur_vendeur_id = NULL WHERE chauffeur_vendeur_id = ?', [$id]);
+            $conn->executeStatement('UPDATE course SET chauffeur_accepteur_id = NULL WHERE chauffeur_accepteur_id = ?', [$id]);
+            
+            // Supprimer les messages
+            $conn->executeStatement('DELETE FROM message WHERE expediteur_id = ?', [$id]);
+            
+            // Supprimer les transactions
+            $conn->executeStatement('DELETE FROM transaction WHERE chauffeur_payeur_id = ? OR chauffeur_receveur_id = ?', [$id, $id]);
+            
+            // Supprimer les favoris (table de liaison)
+            $conn->executeStatement('DELETE FROM chauffeur_chauffeur WHERE chauffeur_source = ? OR chauffeur_target = ?', [$id, $id]);
+            
+            // Supprimer les rôles personnalisés (table de liaison)
+            $conn->executeStatement('DELETE FROM chauffeur_roles WHERE chauffeur_id = ?', [$id]);
+            
+            // Supprimer les documents et mettre à null le validateur
+            $conn->executeStatement('UPDATE document SET validated_by_id = NULL WHERE validated_by_id = ?', [$id]);
+            $conn->executeStatement('DELETE FROM document WHERE chauffeur_id = ?', [$id]);
+            
+            // Supprimer les activity logs
+            $conn->executeStatement('DELETE FROM activity_log WHERE chauffeur_id = ?', [$id]);
+            
+            // Supprimer les factures
+            $conn->executeStatement('DELETE FROM facture WHERE emetteur_id = ? OR destinataire_id = ?', [$id, $id]);
+            
+            // Supprimer les invitations de groupe (invite_par_id et chauffeur_invite_id)
+            $conn->executeStatement('DELETE FROM groupe_invitation WHERE invite_par_id = ? OR chauffeur_invite_id = ?', [$id, $id]);
+            
+            // Supprimer les membres de groupe (chauffeur_id et invite_par_id)
+            $conn->executeStatement('DELETE FROM groupe_membre WHERE chauffeur_id = ? OR invite_par_id = ?', [$id, $id]);
+            
+            // Supprimer les groupes dont ce chauffeur est propriétaire
+            // D'abord supprimer les courses liées aux groupes de ce chauffeur
+            $conn->executeStatement('UPDATE course SET groupe_id = NULL WHERE groupe_id IN (SELECT id FROM groupe WHERE proprietaire_id = ?)', [$id]);
+            $conn->executeStatement('UPDATE ride SET groupe_id = NULL WHERE groupe_id IN (SELECT id FROM groupe WHERE proprietaire_id = ?)', [$id]);
+            // Puis les invitations et membres des groupes
+            $conn->executeStatement('DELETE FROM groupe_invitation WHERE groupe_id IN (SELECT id FROM groupe WHERE proprietaire_id = ?)', [$id]);
+            $conn->executeStatement('DELETE FROM groupe_membre WHERE groupe_id IN (SELECT id FROM groupe WHERE proprietaire_id = ?)', [$id]);
+            // Enfin supprimer les groupes
+            $conn->executeStatement('DELETE FROM groupe WHERE proprietaire_id = ?', [$id]);
+            
+            // Mettre à null les rides (chauffeur et chauffeur_accepteur)
+            $conn->executeStatement('UPDATE ride SET chauffeur_id = NULL WHERE chauffeur_id = ?', [$id]);
+            $conn->executeStatement('UPDATE ride SET chauffeur_accepteur_id = NULL WHERE chauffeur_accepteur_id = ?', [$id]);
+            
+            // Finalement supprimer le chauffeur directement en SQL
+            $conn->executeStatement('DELETE FROM chauffeur WHERE id = ?', [$id]);
+            
+            // Valider la transaction
+            $conn->commit();
+            
+            // Vider le cache Doctrine pour éviter les problèmes
+            $this->em->clear();
+            
+            return new JsonResponse(['message' => 'Chauffeur supprimé'], 200);
+        } catch (\Exception $e) {
+            // Annuler en cas d'erreur
+            if ($conn->isTransactionActive()) {
+                $conn->rollBack();
+            }
+            return new JsonResponse([
+                'error' => 'Impossible de supprimer ce chauffeur',
+                'details' => $e->getMessage()
+            ], 400);
+        }
     }
 
     /**
