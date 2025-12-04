@@ -16,6 +16,22 @@ class TransactionRepository extends ServiceEntityRepository
         parent::__construct($registry, Transaction::class);
     }
 
+    /**
+     * Récupère toutes les transactions d'un utilisateur (payeur ou receveur)
+     * @return Transaction[]
+     */
+    public function findByUser(int $userId): array
+    {
+        return $this->createQueryBuilder('t')
+            ->leftJoin('t.chauffeurPayeur', 'payeur')
+            ->leftJoin('t.chauffeurReceveur', 'receveur')
+            ->where('payeur.id = :userId OR receveur.id = :userId')
+            ->setParameter('userId', $userId)
+            ->orderBy('t.date', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
 //    /**
 //     * @return Transaction[] Returns an array of Transaction objects
 //     */

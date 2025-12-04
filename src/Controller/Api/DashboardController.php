@@ -5,6 +5,8 @@ namespace App\Controller\Api;
 use App\Repository\AvisRepository;
 use App\Repository\ChauffeurRepository;
 use App\Repository\RideRepository;
+use App\Repository\GroupeRepository;
+use App\Repository\GroupeMembreRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -14,7 +16,9 @@ class DashboardController extends BaseApiController
     public function __construct(
         private RideRepository $rideRepository,
         private ChauffeurRepository $chauffeurRepository,
-        private AvisRepository $avisRepository
+        private AvisRepository $avisRepository,
+        private GroupeRepository $groupeRepository,
+        private GroupeMembreRepository $groupeMembreRepository
     ) {}
 
     #[Route('/api/dashboard/chauffeur', name: 'api_dashboard_chauffeur', methods: ['GET'])]
@@ -59,6 +63,26 @@ class DashboardController extends BaseApiController
             ];
         }, $recentRides);
         
+        // Récupérer les courses disponibles (pas les siennes, avec statut disponible)
+        $availableRides = $this->getAvailableRidesForUser($user);
+        $formattedAvailableRides = array_map(function($ride) {
+            return [
+                'id' => $ride->getId(),
+                'clientName' => $ride->getClientName(),
+                'depart' => $ride->getDepart(),
+                'destination' => $ride->getDestination(),
+                'date' => $ride->getDate()?->format('Y-m-d'),
+                'time' => $ride->getTime()?->format('H:i'),
+                'price' => $ride->getPrice(),
+                'status' => $ride->getStatus(),
+                'vehicle' => $ride->getVehicle(),
+                'chauffeur' => $ride->getChauffeur() ? [
+                    'id' => $ride->getChauffeur()->getId(),
+                    'name' => $ride->getChauffeur()->getPrenom() . ' ' . $ride->getChauffeur()->getNom(),
+                ] : null,
+            ];
+        }, $availableRides);
+        
         return new JsonResponse([
             'stats' => [
                 'totalRides' => $totalRides,
@@ -69,6 +93,7 @@ class DashboardController extends BaseApiController
                 'avisCount' => $avisCount,
             ],
             'myRides' => $formattedRides,
+            'availableRides' => $formattedAvailableRides,
             'chauffeur' => [
                 'id' => $user->getId(),
                 'nom' => $user->getNom(),
@@ -94,13 +119,14 @@ class DashboardController extends BaseApiController
         $completedRides = array_filter($allRides, fn($r) => $r->getStatus() === 'completed');
         $pendingRides = array_filter($allRides, fn($r) => $r->getStatus() === 'pending');
         
-        // Revenus totaux plateforme
-        $totalRevenue = array_reduce($allRides, function($total, $ride) {
+        // Revenus plateforme = 15% de commission sur chaque course complétée
+        $totalCoursesRevenue = array_reduce($allRides, function($total, $ride) {
             if ($ride->getStatus() === 'completed') {
                 return $total + ($ride->getPrice() ?? 0);
             }
             return $total;
         }, 0);
+        $platformRevenue = $totalCoursesRevenue * 0.15; // Commission de 15%
         
         // Formater les chauffeurs
         $formattedChauffeurs = array_map(function($chauffeur) {
@@ -151,7 +177,8 @@ class DashboardController extends BaseApiController
                 'todayRides' => count($todayRides),
                 'pendingRides' => count($pendingRides),
                 'completedRides' => count($completedRides),
-                'totalRevenue' => $totalRevenue,
+                'totalRevenue' => $platformRevenue, // Commission 15%
+                'totalCoursesValue' => $totalCoursesRevenue, // Valeur totale des courses
                 'activeRides' => count($pendingRides),
             ],
             'topChauffeurs' => $formattedChauffeurs,
@@ -284,5 +311,50 @@ class DashboardController extends BaseApiController
                 ],
             ],
         ]);
+    }
+    
+    /**
+     * Récupère les courses disponibles pour un utilisateur
+     */
+    private function getAvailableRidesForUser($user): array
+    {
+        // Récupérer les IDs des groupes dont le chauffeur est membre
+        $groupeIds = [];
+        $memberships = $this->groupeMembreRepository->findBy(['chauffeur' => $user]);
+        foreach ($memberships as $membership) {
+            $groupeIds[] = $membership->getGroupe()->getId();
+        }
+        
+        // Ajouter les groupes dont il est propriétaire
+        $ownedGroups = $this->groupeRepository->findBy(['proprietaire' => $user]);
+        foreach ($ownedGroups as $groupe) {
+            if (!in_array($groupe->getId(), $groupeIds)) {
+                $groupeIds[] = $groupe->getId();
+            }
+        }
+        
+        // Construire la requête pour les courses disponibles
+        $qb = $this->rideRepository->createQueryBuilder('r')
+            ->where('r.status = :status')
+            ->andWhere('r.chauffeur IS NULL OR r.chauffeur != :user')
+            ->setParameter('status', 'disponible')
+            ->setParameter('user', $user);
+        
+        // Courses publiques OU courses de ses groupes
+        if (!empty($groupeIds)) {
+            $qb->andWhere('r.visibility = :public OR (r.visibility = :groupe AND r.groupe IN (:groupeIds))')
+                ->setParameter('public', 'public')
+                ->setParameter('groupe', 'groupe')
+                ->setParameter('groupeIds', $groupeIds);
+        } else {
+            // Uniquement courses publiques si pas de groupe
+            $qb->andWhere('r.visibility = :public OR r.visibility IS NULL')
+                ->setParameter('public', 'public');
+        }
+        
+        $qb->orderBy('r.date', 'ASC')
+           ->setMaxResults(10);
+        
+        return $qb->getQuery()->getResult();
     }
 }
