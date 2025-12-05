@@ -7,6 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: MessageRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class Message
 {
     #[ORM\Id]
@@ -25,6 +26,20 @@ class Message
 
     #[ORM\ManyToOne(inversedBy: 'messages')]
     private ?Course $course = null;
+
+    #[ORM\ManyToOne(targetEntity: Conversation::class, inversedBy: 'messages')]
+    private ?Conversation $conversation = null;
+
+    #[ORM\Column]
+    private bool $isRead = false;
+
+    #[ORM\PrePersist]
+    public function prePersist(): void
+    {
+        if ($this->dateEnvoi === null) {
+            $this->dateEnvoi = new \DateTime();
+        }
+    }
 
     public function getId(): ?int
     {
@@ -76,6 +91,28 @@ class Message
     {
         $this->course = $course;
 
+        return $this;
+    }
+
+    public function getConversation(): ?Conversation
+    {
+        return $this->conversation;
+    }
+
+    public function setConversation(?Conversation $conversation): static
+    {
+        $this->conversation = $conversation;
+        return $this;
+    }
+
+    public function isRead(): bool
+    {
+        return $this->isRead;
+    }
+
+    public function setIsRead(bool $isRead): static
+    {
+        $this->isRead = $isRead;
         return $this;
     }
 }

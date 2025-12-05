@@ -88,6 +88,20 @@ class Ride
     #[ORM\Column(length: 20)]
     private string $visibility = 'public';
 
+    // Coordonnées GPS du départ
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $departLat = null;
+
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $departLng = null;
+
+    // Coordonnées GPS de la destination
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $destinationLat = null;
+
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $destinationLng = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -347,6 +361,81 @@ class Ride
         }
 
         return false;
+    }
+
+    // Getters/Setters pour les coordonnées GPS
+    public function getDepartLat(): ?float
+    {
+        return $this->departLat;
+    }
+
+    public function setDepartLat(?float $departLat): static
+    {
+        $this->departLat = $departLat;
+        return $this;
+    }
+
+    public function getDepartLng(): ?float
+    {
+        return $this->departLng;
+    }
+
+    public function setDepartLng(?float $departLng): static
+    {
+        $this->departLng = $departLng;
+        return $this;
+    }
+
+    public function getDestinationLat(): ?float
+    {
+        return $this->destinationLat;
+    }
+
+    public function setDestinationLat(?float $destinationLat): static
+    {
+        $this->destinationLat = $destinationLat;
+        return $this;
+    }
+
+    public function getDestinationLng(): ?float
+    {
+        return $this->destinationLng;
+    }
+
+    public function setDestinationLng(?float $destinationLng): static
+    {
+        $this->destinationLng = $destinationLng;
+        return $this;
+    }
+
+    /**
+     * Récupérer les coordonnées de départ sous forme de tableau
+     */
+    public function getDepartureCoords(): ?array
+    {
+        if ($this->departLat !== null && $this->departLng !== null) {
+            return [
+                'lat' => $this->departLat,
+                'lng' => $this->departLng,
+                'address' => $this->depart,
+            ];
+        }
+        return null;
+    }
+
+    /**
+     * Récupérer les coordonnées d'arrivée sous forme de tableau
+     */
+    public function getArrivalCoords(): ?array
+    {
+        if ($this->destinationLat !== null && $this->destinationLng !== null) {
+            return [
+                'lat' => $this->destinationLat,
+                'lng' => $this->destinationLng,
+                'address' => $this->destination,
+            ];
+        }
+        return null;
     }
 }
 

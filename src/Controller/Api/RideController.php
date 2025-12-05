@@ -4,10 +4,14 @@ namespace App\Controller\Api;
 
 use App\Entity\Ride;
 use App\Entity\Groupe;
+use App\Entity\Notification;
+use App\Entity\Conversation;
 use App\Repository\RideRepository;
 use App\Repository\GroupeRepository;
 use App\Repository\GroupeMembreRepository;
+use App\Repository\ConversationRepository;
 use App\Service\ActivityLogService;
+use App\Service\GeocodingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,7 +27,9 @@ class RideController extends AbstractController
         private RideRepository $rideRepository,
         private GroupeRepository $groupeRepository,
         private GroupeMembreRepository $groupeMembreRepository,
-        private ActivityLogService $activityLogService
+        private ConversationRepository $conversationRepository,
+        private ActivityLogService $activityLogService,
+        private GeocodingService $geocodingService
     ) {}
 
     /**
@@ -248,6 +254,19 @@ class RideController extends AbstractController
                 $ride->setGroupe($groupe);
             }
 
+            // Géocoder les adresses pour obtenir les coordonnées GPS
+            $coords = $this->geocodingService->geocodeRide($ride->getDepart(), $ride->getDestination());
+            
+            if ($coords['departure']) {
+                $ride->setDepartLat($coords['departure']['lat']);
+                $ride->setDepartLng($coords['departure']['lng']);
+            }
+            
+            if ($coords['arrival']) {
+                $ride->setDestinationLat($coords['arrival']['lat']);
+                $ride->setDestinationLng($coords['arrival']['lng']);
+            }
+
             $this->entityManager->persist($ride);
             $this->entityManager->flush();
 
@@ -370,6 +389,7 @@ class RideController extends AbstractController
     public function accept(Ride $ride): JsonResponse
     {
         try {
+            /** @var \App\Entity\Chauffeur $user */
             $user = $this->getUser();
             
             // Vérifier que ce n'est pas le même chauffeur
@@ -382,6 +402,27 @@ class RideController extends AbstractController
 
             $ride->setChauffeurAccepteur($user);
             $ride->setStatus('acceptée');
+            
+            // Créer une notification pour le propriétaire de la course
+            $owner = $ride->getChauffeur();
+            $notification = new Notification();
+            $notification->setRecipient($owner);
+            $notification->setSender($user);
+            $notification->setType(Notification::TYPE_RIDE_ACCEPTED);
+            $notification->setTitle('Course acceptée');
+            $notification->setMessage($user->getPrenom() . ' ' . $user->getNom() . ' a accepté votre course ' . $ride->getDepart() . ' → ' . $ride->getDestination());
+            $notification->setRide($ride);
+            $this->entityManager->persist($notification);
+            
+            // Créer une conversation pour cette course
+            $existingConversation = $this->conversationRepository->findByRide($ride);
+            if (!$existingConversation) {
+                $conversation = new Conversation();
+                $conversation->setChauffeur1($owner);
+                $conversation->setChauffeur2($user);
+                $conversation->setRide($ride);
+                $this->entityManager->persist($conversation);
+            }
             
             $this->entityManager->flush();
 
@@ -449,6 +490,7 @@ class RideController extends AbstractController
     private function serializeRide(Ride $ride, $currentUser = null): array
     {
         $isOwner = $currentUser && $ride->getChauffeur() && $ride->getChauffeur()->getId() === $currentUser->getId();
+        $isAcceptor = $currentUser && $ride->getChauffeurAccepteur() && $ride->getChauffeurAccepteur()->getId() === $currentUser->getId();
         
         return [
             'id' => $ride->getId(),
@@ -469,6 +511,10 @@ class RideController extends AbstractController
             'statusVendeur' => $ride->getStatusVendeur(),
             'visibility' => $ride->getVisibility(),
             'isOwner' => $isOwner,
+            'isAcceptor' => $isAcceptor,
+            // Coordonnées GPS pour la carte
+            'departureCoords' => $ride->getDepartureCoords(),
+            'arrivalCoords' => $ride->getArrivalCoords(),
             'groupe' => $ride->getGroupe() ? [
                 'id' => $ride->getGroupe()->getId(),
                 'nom' => $ride->getGroupe()->getNom(),

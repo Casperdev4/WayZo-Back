@@ -3,9 +3,13 @@
 namespace App\Controller\Api;
 
 use App\Entity\Message;
+use App\Entity\Conversation;
+use App\Entity\Notification;
 use App\Repository\MessageRepository;
 use App\Repository\ChauffeurRepository;
 use App\Repository\CourseRepository;
+use App\Repository\RideRepository;
+use App\Repository\ConversationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,23 +23,60 @@ class ChatController extends BaseApiController
         private MessageRepository $messageRepository,
         private ChauffeurRepository $chauffeurRepository,
         private CourseRepository $courseRepository,
+        private RideRepository $rideRepository,
+        private ConversationRepository $conversationRepository,
         private EntityManagerInterface $em
     ) {}
 
     /**
      * Liste des conversations (chauffeurs avec qui on a échangé)
+     * Inclut les conversations de Course ET de Ride
      */
     #[Route('/chats', name: 'api_chats_list', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function getChats(): JsonResponse
     {
         $user = $this->getChauffeur();
-        
-        // Récupérer tous les messages envoyés ou reçus par l'utilisateur
-        $sentMessages = $this->messageRepository->findBy(['expediteur' => $user]);
-        
-        // Grouper par conversation (par course ou par destinataire)
         $conversations = [];
+        
+        // 1. Récupérer les conversations liées aux Rides
+        $rideConversations = $this->conversationRepository->findByUser($user);
+        
+        foreach ($rideConversations as $conv) {
+            $other = $conv->getOtherParticipant($user);
+            $lastMessage = $conv->getMessages()->last();
+            
+            // Compter les messages non lus
+            $unreadCount = 0;
+            foreach ($conv->getMessages() as $msg) {
+                if ($msg->getExpediteur() !== $user && !$msg->isRead()) {
+                    $unreadCount++;
+                }
+            }
+            
+            $conversations[] = [
+                'id' => 'ride-' . $conv->getId(),
+                'conversationId' => $conv->getId(),
+                'rideId' => $conv->getRide()->getId(),
+                'chatType' => 'personal',
+                'muted' => false,
+                'unread' => $unreadCount,
+                'name' => $other ? $other->getPrenom() . ' ' . $other->getNom() : 'Inconnu',
+                'userId' => $other?->getId(),
+                'avatar' => '/img/avatars/thumb-' . (($other?->getId() ?? 1) % 15 + 1) . '.jpg',
+                'lastConversation' => $lastMessage ? $lastMessage->getContenu() : '',
+                'lastConversationTime' => $lastMessage ? $lastMessage->getDateEnvoi()?->getTimestamp() : null,
+                'ride' => [
+                    'id' => $conv->getRide()->getId(),
+                    'depart' => $conv->getRide()->getDepart(),
+                    'destination' => $conv->getRide()->getDestination(),
+                    'date' => $conv->getRide()->getDate()?->format('Y-m-d'),
+                ],
+            ];
+        }
+        
+        // 2. Récupérer les anciennes conversations de Course (pour compatibilité)
+        $sentMessages = $this->messageRepository->findBy(['expediteur' => $user]);
         $processedCourses = [];
         
         foreach ($sentMessages as $message) {
@@ -43,7 +84,6 @@ class ChatController extends BaseApiController
             if ($course && !in_array($course->getId(), $processedCourses)) {
                 $processedCourses[] = $course->getId();
                 
-                // Trouver l'autre chauffeur dans la conversation
                 $otherChauffeur = null;
                 if ($course->getChauffeurVendeur() && $course->getChauffeurVendeur()->getId() !== $user->getId()) {
                     $otherChauffeur = $course->getChauffeurVendeur();
@@ -52,7 +92,6 @@ class ChatController extends BaseApiController
                 }
                 
                 if ($otherChauffeur) {
-                    // Dernier message de cette conversation
                     $lastMessage = $this->messageRepository->findOneBy(
                         ['course' => $course],
                         ['dateEnvoi' => 'DESC']
@@ -64,13 +103,11 @@ class ChatController extends BaseApiController
                         'chatType' => 'personal',
                         'muted' => false,
                         'unread' => 0,
-                        'user' => [
-                            'id' => $otherChauffeur->getId(),
-                            'name' => $otherChauffeur->getPrenom() . ' ' . $otherChauffeur->getNom(),
-                            'avatarImageUrl' => '/img/avatars/thumb-' . ($otherChauffeur->getId() % 15 + 1) . '.jpg',
-                        ],
+                        'name' => $otherChauffeur->getPrenom() . ' ' . $otherChauffeur->getNom(),
+                        'userId' => $otherChauffeur->getId(),
+                        'avatar' => '/img/avatars/thumb-' . ($otherChauffeur->getId() % 15 + 1) . '.jpg',
                         'lastConversation' => $lastMessage ? $lastMessage->getContenu() : '',
-                        'lastConversationTime' => $lastMessage ? $lastMessage->getDateEnvoi()->format('Y-m-d H:i:s') : null,
+                        'lastConversationTime' => $lastMessage ? $lastMessage->getDateEnvoi()->getTimestamp() : null,
                         'course' => [
                             'id' => $course->getId(),
                             'depart' => $course->getDepart(),
@@ -84,7 +121,7 @@ class ChatController extends BaseApiController
         
         // Trier par date du dernier message
         usort($conversations, function($a, $b) {
-            return strtotime($b['lastConversationTime'] ?? '1970-01-01') - strtotime($a['lastConversationTime'] ?? '1970-01-01');
+            return ($b['lastConversationTime'] ?? 0) - ($a['lastConversationTime'] ?? 0);
         });
         
         return new JsonResponse($conversations);
@@ -92,6 +129,7 @@ class ChatController extends BaseApiController
 
     /**
      * Récupérer une conversation complète
+     * Supporte les formats: chat-{courseId} et ride-{conversationId}
      */
     #[Route('/conversation/{id}', name: 'api_conversation_get', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
@@ -99,7 +137,50 @@ class ChatController extends BaseApiController
     {
         $user = $this->getChauffeur();
         
-        // Extraire l'ID de la course depuis l'ID du chat (format: chat-123)
+        // Format ride-{id} pour les conversations Ride
+        if (str_starts_with($id, 'ride-')) {
+            $conversationId = (int) str_replace('ride-', '', $id);
+            $conversation = $this->conversationRepository->find($conversationId);
+            
+            if (!$conversation) {
+                return new JsonResponse(['error' => 'Conversation non trouvée'], 404);
+            }
+            
+            if (!$conversation->hasParticipant($user)) {
+                return new JsonResponse(['error' => 'Accès refusé'], 403);
+            }
+            
+            // Marquer les messages comme lus
+            foreach ($conversation->getMessages() as $msg) {
+                if ($msg->getExpediteur() !== $user && !$msg->isRead()) {
+                    $msg->setIsRead(true);
+                }
+            }
+            $this->em->flush();
+            
+            $messages = array_map(function($message) use ($user) {
+                $sender = $message->getExpediteur();
+                return [
+                    'id' => 'msg-' . $message->getId(),
+                    'sender' => [
+                        'id' => $sender?->getId(),
+                        'name' => $sender ? $sender->getPrenom() . ' ' . $sender->getNom() : 'Inconnu',
+                        'avatarImageUrl' => '/img/avatars/thumb-' . (($sender?->getId() ?? 1) % 15 + 1) . '.jpg',
+                    ],
+                    'content' => $message->getContenu(),
+                    'timestamp' => $message->getDateEnvoi()?->getTimestamp(),
+                    'type' => 'regular',
+                    'isMyMessage' => $sender === $user,
+                ];
+            }, $conversation->getMessages()->toArray());
+            
+            return new JsonResponse([
+                'id' => $id,
+                'conversation' => $messages,
+            ]);
+        }
+        
+        // Format chat-{id} pour les anciennes conversations Course
         $courseId = str_replace('chat-', '', $id);
         $course = $this->courseRepository->find($courseId);
         
@@ -131,17 +212,21 @@ class ChatController extends BaseApiController
                     'avatarImageUrl' => '/img/avatars/thumb-' . ($sender->getId() % 15 + 1) . '.jpg',
                 ],
                 'content' => $message->getContenu(),
-                'timestamp' => $message->getDateEnvoi()->format('c'),
+                'timestamp' => $message->getDateEnvoi()->getTimestamp(),
                 'type' => 'regular',
                 'isMyMessage' => $sender->getId() === $user->getId(),
             ];
         }, $messages);
         
-        return new JsonResponse($conversation);
+        return new JsonResponse([
+            'id' => $id,
+            'conversation' => $conversation,
+        ]);
     }
 
     /**
      * Envoyer un message
+     * Supporte les formats: chat-{courseId} et ride-{conversationId}
      */
     #[Route('/conversation/{id}/message', name: 'api_conversation_send', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
@@ -149,8 +234,66 @@ class ChatController extends BaseApiController
     {
         $user = $this->getChauffeur();
         $data = json_decode($request->getContent(), true);
+        $content = $data['content'] ?? '';
         
-        // Extraire l'ID de la course
+        if (empty(trim($content))) {
+            return new JsonResponse(['error' => 'Message vide'], 400);
+        }
+        
+        // Format ride-{id} pour les conversations Ride
+        if (str_starts_with($id, 'ride-')) {
+            $conversationId = (int) str_replace('ride-', '', $id);
+            $conversation = $this->conversationRepository->find($conversationId);
+            
+            if (!$conversation) {
+                return new JsonResponse(['error' => 'Conversation non trouvée'], 404);
+            }
+            
+            if (!$conversation->hasParticipant($user)) {
+                return new JsonResponse(['error' => 'Accès refusé'], 403);
+            }
+            
+            // Créer le message
+            $message = new Message();
+            $message->setContenu($content);
+            $message->setDateEnvoi(new \DateTime());
+            $message->setExpediteur($user);
+            $message->setConversation($conversation);
+            
+            $conversation->setLastMessageAt(new \DateTime());
+            
+            $this->em->persist($message);
+            
+            // Créer une notification pour l'autre participant
+            $other = $conversation->getOtherParticipant($user);
+            if ($other) {
+                $notification = new Notification();
+                $notification->setRecipient($other);
+                $notification->setSender($user);
+                $notification->setType(Notification::TYPE_NEW_MESSAGE);
+                $notification->setTitle('Nouveau message');
+                $notification->setMessage($user->getPrenom() . ' vous a envoyé un message');
+                $notification->setRide($conversation->getRide());
+                $this->em->persist($notification);
+            }
+            
+            $this->em->flush();
+            
+            return new JsonResponse([
+                'id' => 'msg-' . $message->getId(),
+                'sender' => [
+                    'id' => $user->getId(),
+                    'name' => $user->getPrenom() . ' ' . $user->getNom(),
+                    'avatarImageUrl' => '/img/avatars/thumb-' . ($user->getId() % 15 + 1) . '.jpg',
+                ],
+                'content' => $message->getContenu(),
+                'timestamp' => $message->getDateEnvoi()->getTimestamp(),
+                'type' => 'regular',
+                'isMyMessage' => true,
+            ], 201);
+        }
+        
+        // Format chat-{id} pour les anciennes conversations Course
         $courseId = str_replace('chat-', '', $id);
         $course = $this->courseRepository->find($courseId);
         
@@ -160,7 +303,7 @@ class ChatController extends BaseApiController
         
         // Créer le message
         $message = new Message();
-        $message->setContenu($data['content'] ?? '');
+        $message->setContenu($content);
         $message->setDateEnvoi(new \DateTime());
         $message->setExpediteur($user);
         $message->setCourse($course);
@@ -176,7 +319,7 @@ class ChatController extends BaseApiController
                 'avatarImageUrl' => '/img/avatars/thumb-' . ($user->getId() % 15 + 1) . '.jpg',
             ],
             'content' => $message->getContenu(),
-            'timestamp' => $message->getDateEnvoi()->format('c'),
+            'timestamp' => $message->getDateEnvoi()->getTimestamp(),
             'type' => 'regular',
             'isMyMessage' => true,
         ], 201);
@@ -281,5 +424,222 @@ class ChatController extends BaseApiController
                 'avatarImageUrl' => '/img/avatars/thumb-' . ($otherChauffeur->getId() % 15 + 1) . '.jpg',
             ],
         ], 201);
+    }
+
+    // =====================================
+    // ROUTES POUR LES CONVERSATIONS (RIDES)
+    // =====================================
+
+    /**
+     * Liste des conversations liées aux Rides
+     */
+    #[Route('/conversations', name: 'api_ride_conversations_list', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getRideConversations(): JsonResponse
+    {
+        $user = $this->getChauffeur();
+        $conversations = $this->conversationRepository->findByUser($user);
+        
+        $data = array_map(function(Conversation $conv) use ($user) {
+            $other = $conv->getOtherParticipant($user);
+            $lastMessage = $conv->getMessages()->last();
+            
+            // Compter les messages non lus
+            $unreadCount = 0;
+            foreach ($conv->getMessages() as $msg) {
+                if ($msg->getExpediteur() !== $user && !$msg->isRead()) {
+                    $unreadCount++;
+                }
+            }
+            
+            return [
+                'id' => $conv->getId(),
+                'ride' => [
+                    'id' => $conv->getRide()->getId(),
+                    'depart' => $conv->getRide()->getDepart(),
+                    'destination' => $conv->getRide()->getDestination(),
+                    'date' => $conv->getRide()->getDate()?->format('Y-m-d'),
+                ],
+                'participant' => [
+                    'id' => $other?->getId(),
+                    'name' => $other ? $other->getPrenom() . ' ' . $other->getNom() : 'Inconnu',
+                ],
+                'lastMessage' => $lastMessage ? [
+                    'content' => $lastMessage->getContenu(),
+                    'createdAt' => $lastMessage->getDateEnvoi()?->format('c'),
+                    'isMe' => $lastMessage->getExpediteur() === $user,
+                ] : null,
+                'unreadCount' => $unreadCount,
+                'createdAt' => $conv->getCreatedAt()?->format('c'),
+            ];
+        }, $conversations);
+        
+        return new JsonResponse($data);
+    }
+
+    /**
+     * Récupérer ou créer une conversation pour une course (Ride)
+     */
+    #[Route('/conversations/ride/{rideId}', name: 'api_conversation_ride', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getOrCreateConversationForRide(int $rideId): JsonResponse
+    {
+        $user = $this->getChauffeur();
+        $ride = $this->rideRepository->find($rideId);
+        
+        if (!$ride) {
+            return new JsonResponse(['error' => 'Course non trouvée'], 404);
+        }
+        
+        // Vérifier que l'utilisateur fait partie de la course
+        $isOwner = $ride->getChauffeur() === $user;
+        $isAcceptor = $ride->getChauffeurAccepteur() === $user;
+        
+        if (!$isOwner && !$isAcceptor) {
+            return new JsonResponse(['error' => 'Non autorisé'], 403);
+        }
+        
+        // La conversation ne peut exister que si la course est acceptée
+        if (!$ride->getChauffeurAccepteur()) {
+            return new JsonResponse(['error' => 'Course non acceptée'], 400);
+        }
+        
+        // Chercher une conversation existante
+        $conversation = $this->conversationRepository->findByRide($ride);
+        
+        // Créer si elle n'existe pas
+        if (!$conversation) {
+            $conversation = new Conversation();
+            $conversation->setChauffeur1($ride->getChauffeur());
+            $conversation->setChauffeur2($ride->getChauffeurAccepteur());
+            $conversation->setRide($ride);
+            
+            $this->em->persist($conversation);
+            $this->em->flush();
+        }
+        
+        $other = $conversation->getOtherParticipant($user);
+        
+        return new JsonResponse([
+            'id' => $conversation->getId(),
+            'ride' => [
+                'id' => $ride->getId(),
+                'depart' => $ride->getDepart(),
+                'destination' => $ride->getDestination(),
+            ],
+            'participant' => [
+                'id' => $other?->getId(),
+                'name' => $other ? $other->getPrenom() . ' ' . $other->getNom() : 'Inconnu',
+            ],
+        ]);
+    }
+
+    /**
+     * Récupérer les messages d'une conversation
+     */
+    #[Route('/conversations/{id}', name: 'api_conversation_messages', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getConversationMessages(Conversation $conversation): JsonResponse
+    {
+        $user = $this->getChauffeur();
+        
+        if (!$conversation->hasParticipant($user)) {
+            return new JsonResponse(['error' => 'Non autorisé'], 403);
+        }
+        
+        // Marquer les messages comme lus
+        foreach ($conversation->getMessages() as $message) {
+            if ($message->getExpediteur() !== $user && !$message->isRead()) {
+                $message->setIsRead(true);
+            }
+        }
+        $this->em->flush();
+        
+        $other = $conversation->getOtherParticipant($user);
+        
+        $messages = array_map(function(Message $msg) use ($user) {
+            return [
+                'id' => $msg->getId(),
+                'content' => $msg->getContenu(),
+                'createdAt' => $msg->getDateEnvoi()?->format('c'),
+                'isMe' => $msg->getExpediteur() === $user,
+                'sender' => [
+                    'id' => $msg->getExpediteur()?->getId(),
+                    'name' => $msg->getExpediteur() ? $msg->getExpediteur()->getPrenom() . ' ' . $msg->getExpediteur()->getNom() : 'Inconnu',
+                ],
+            ];
+        }, $conversation->getMessages()->toArray());
+        
+        return new JsonResponse([
+            'id' => $conversation->getId(),
+            'ride' => [
+                'id' => $conversation->getRide()->getId(),
+                'depart' => $conversation->getRide()->getDepart(),
+                'destination' => $conversation->getRide()->getDestination(),
+                'date' => $conversation->getRide()->getDate()?->format('Y-m-d'),
+                'status' => $conversation->getRide()->getStatus(),
+            ],
+            'participant' => [
+                'id' => $other?->getId(),
+                'name' => $other ? $other->getPrenom() . ' ' . $other->getNom() : 'Inconnu',
+            ],
+            'messages' => $messages,
+        ]);
+    }
+
+    /**
+     * Envoyer un message dans une conversation
+     */
+    #[Route('/conversations/{id}/messages', name: 'api_conversation_send_message', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function sendConversationMessage(Conversation $conversation, Request $request): JsonResponse
+    {
+        $user = $this->getChauffeur();
+        
+        if (!$conversation->hasParticipant($user)) {
+            return new JsonResponse(['error' => 'Non autorisé'], 403);
+        }
+        
+        $data = json_decode($request->getContent(), true);
+        $content = $data['content'] ?? '';
+        
+        if (empty(trim($content))) {
+            return new JsonResponse(['error' => 'Message vide'], 400);
+        }
+        
+        $message = new Message();
+        $message->setConversation($conversation);
+        $message->setExpediteur($user);
+        $message->setContenu($content);
+        $message->setDateEnvoi(new \DateTime());
+        
+        $conversation->setLastMessageAt(new \DateTime());
+        
+        $this->em->persist($message);
+        
+        // Créer une notification pour l'autre participant
+        $other = $conversation->getOtherParticipant($user);
+        if ($other) {
+            $notification = new Notification();
+            $notification->setRecipient($other);
+            $notification->setSender($user);
+            $notification->setType(Notification::TYPE_NEW_MESSAGE);
+            $notification->setTitle('Nouveau message');
+            $notification->setMessage($user->getPrenom() . ' vous a envoyé un message');
+            $notification->setRide($conversation->getRide());
+            $this->em->persist($notification);
+        }
+        
+        $this->em->flush();
+        
+        return new JsonResponse([
+            'success' => true,
+            'message' => [
+                'id' => $message->getId(),
+                'content' => $message->getContenu(),
+                'createdAt' => $message->getDateEnvoi()?->format('c'),
+                'isMe' => true,
+            ],
+        ]);
     }
 }

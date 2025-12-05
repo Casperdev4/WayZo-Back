@@ -71,15 +71,21 @@ class CalendarController extends BaseApiController
                 );
             }
             
+            // Si pas de date, on skip
+            if (!$startDateTime instanceof \DateTime) {
+                return null;
+            }
+            
             // Durée estimée de 1h par défaut
+            /** @var \DateTime $endDateTime */
             $endDateTime = clone $startDateTime;
             $endDateTime->modify('+1 hour');
             
             return [
                 'id' => (string) $ride->getId(),
                 'title' => $ride->getDepart() . ' → ' . $ride->getDestination(),
-                'start' => $startDateTime?->format('c'),
-                'end' => $endDateTime?->format('c'),
+                'start' => $startDateTime->format('c'),
+                'end' => $endDateTime->format('c'),
                 'color' => $color,
                 'extendedProps' => [
                     'eventColor' => $color,
