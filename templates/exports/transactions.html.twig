@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Transactions - WayZo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DejaVu Sans', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 10px;
+            line-height: 1.4;
+            color: #333;
+            background: #fff;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 30px;
+        }
+        
+        /* Header */
+        .header {
+            margin-bottom: 30px;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 15px;
+        }
+        
+        .header-row {
+            width: 100%;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        
+        .logo span {
+            color: #1e40af;
+        }
+        
+        .document-info {
+            text-align: right;
+            float: right;
+            margin-top: -30px;
+        }
+        
+        .document-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 5px;
+        }
+        
+        .document-date {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+        
+        /* Infos utilisateur */
+        .user-info {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .user-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 5px;
+        }
+        
+        .user-details {
+            font-size: 10px;
+            color: #555;
+        }
+        
+        /* Filtres appliqués */
+        .filters-section {
+            background: #fef3c7;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .filters-title {
+            font-size: 10px;
+            font-weight: bold;
+            color: #92400e;
+            margin-bottom: 5px;
+        }
+        
+        .filters-list {
+            font-size: 9px;
+            color: #78350f;
+        }
+        
+        /* Statistiques */
+        .stats-section {
+            margin-bottom: 25px;
+        }
+        
+        .stats-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .stats-grid {
+            width: 100%;
+        }
+        
+        .stats-grid td {
+            width: 25%;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .stat-box {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        
+        .stat-box.received {
+            background: #dcfce7;
+        }
+        
+        .stat-box.sent {
+            background: #fee2e2;
+        }
+        
+        .stat-box.balance {
+            background: #dbeafe;
+        }
+        
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+        
+        .stat-value.positive {
+            color: #16a34a;
+        }
+        
+        .stat-value.negative {
+            color: #dc2626;
+        }
+        
+        .stat-label {
+            font-size: 9px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+        
+        /* Table des transactions */
+        .transactions-section {
+            margin-top: 20px;
+        }
+        
+        .transactions-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        table.transactions {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+        }
+        
+        table.transactions th {
+            background: #1e40af;
+            color: #fff;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 8px;
+        }
+        
+        table.transactions td {
+            padding: 8px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+        
+        table.transactions tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        
+        .type-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 8px;
+            font-weight: bold;
+        }
+        
+        .type-received {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .type-sent {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 7px;
+            font-weight: bold;
+        }
+        
+        .status-completed {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        
+        .status-cancelled {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        
+        .status-refunded {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        
+        .amount {
+            font-weight: bold;
+            text-align: right;
+        }
+        
+        .amount.positive {
+            color: #16a34a;
+        }
+        
+        .amount.negative {
+            color: #dc2626;
+        }
+        
+        .course-info {
+            font-size: 8px;
+            color: #64748b;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 8px;
+            color: #94a3b8;
+        }
+        
+        .footer-legal {
+            margin-top: 10px;
+            font-style: italic;
+        }
+        
+        /* No data */
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+            font-style: italic;
+        }
+        
+        /* Page break */
+        .page-break {
+            page-break-after: always;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header clearfix">
+            <div class="header-row">
+                <div class="logo">Way<span>Zo</span></div>
+                <div class="document-info">
+                    <div class="document-title">Export Comptable</div>
+                    <div class="document-date">Généré le {{ generatedAt|date('d/m/Y à H:i') }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Infos utilisateur -->
+        <div class="user-info">
+            <div class="user-name">{{ user.prenom }} {{ user.nom }}</div>
+            <div class="user-details">
+                {% if user.email %}{{ user.email }} | {% endif %}
+                {% if user.telephone %}{{ user.telephone }}{% endif %}
+            </div>
+        </div>
+        
+        <!-- Filtres appliqués -->
+        {% if filters|length > 0 %}
+        <div class="filters-section">
+            <div class="filters-title">Filtres appliqués</div>
+            <div class="filters-list">
+                {% if filters.dateFrom is defined and filters.dateFrom %}
+                    Du {{ filters.dateFrom|date('d/m/Y') }}
+                {% endif %}
+                {% if filters.dateTo is defined and filters.dateTo %}
+                    au {{ filters.dateTo|date('d/m/Y') }}
+                {% endif %}
+                {% if filters.statut is defined and filters.statut %}
+                    | Statut: {{ filters.statut }}
+                {% endif %}
+                {% if filters.type is defined and filters.type %}
+                    | Type: {{ filters.type == 'sent' ? 'Envoyés' : 'Reçus' }}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Statistiques -->
+        <div class="stats-section">
+            <div class="stats-title">Résumé financier</div>
+            <table class="stats-grid">
+                <tr>
+                    <td>
+                        <div class="stat-box">
+                            <div class="stat-value">{{ stats.totalTransactions }}</div>
+                            <div class="stat-label">Transactions</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="stat-box received">
+                            <div class="stat-value positive">+{{ stats.totalReceived|number_format(2, ',', ' ') }} €</div>
+                            <div class="stat-label">Total reçu ({{ stats.countReceived }})</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="stat-box sent">
+                            <div class="stat-value negative">-{{ stats.totalSent|number_format(2, ',', ' ') }} €</div>
+                            <div class="stat-label">Total envoyé ({{ stats.countSent }})</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="stat-box balance">
+                            <div class="stat-value {{ stats.balance >= 0 ? 'positive' : 'negative' }}">
+                                {{ stats.balance >= 0 ? '+' : '' }}{{ stats.balance|number_format(2, ',', ' ') }} €
+                            </div>
+                            <div class="stat-label">Solde</div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Liste des transactions -->
+        <div class="transactions-section">
+            <div class="transactions-title">Détail des transactions ({{ transactions|length }})</div>
+            
+            {% if transactions|length > 0 %}
+            <table class="transactions">
+                <thead>
+                    <tr>
+                        <th style="width: 12%">Référence</th>
+                        <th style="width: 10%">Date</th>
+                        <th style="width: 10%">Montant</th>
+                        <th style="width: 10%">Type</th>
+                        <th style="width: 10%">Statut</th>
+                        <th style="width: 18%">Contrepartie</th>
+                        <th style="width: 30%">Course</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    {% set isReceived = transaction.chauffeurReceveur.id == user.id %}
+                    <tr>
+                        <td>{{ transaction.reference ?? 'N/A' }}</td>
+                        <td>{{ transaction.date|date('d/m/Y') }}<br><small style="color: #94a3b8;">{{ transaction.date|date('H:i') }}</small></td>
+                        <td class="amount {{ isReceived ? 'positive' : 'negative' }}">
+                            {{ isReceived ? '+' : '-' }}{{ transaction.montant|number_format(2, ',', ' ') }} €
+                        </td>
+                        <td>
+                            <span class="type-badge {{ isReceived ? 'type-received' : 'type-sent' }}">
+                                {{ isReceived ? 'Reçu' : 'Envoyé' }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ transaction.statut }}">
+                                {% if transaction.statut == 'pending' %}En attente
+                                {% elseif transaction.statut == 'completed' %}Terminé
+                                {% elseif transaction.statut == 'cancelled' %}Annulé
+                                {% elseif transaction.statut == 'refunded' %}Remboursé
+                                {% else %}{{ transaction.statut }}{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            {% if isReceived and transaction.chauffeurPayeur %}
+                                {{ transaction.chauffeurPayeur.prenom }} {{ transaction.chauffeurPayeur.nom }}
+                            {% elseif not isReceived and transaction.chauffeurReceveur %}
+                                {{ transaction.chauffeurReceveur.prenom }} {{ transaction.chauffeurReceveur.nom }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if transaction.course %}
+                                <div><strong>{{ transaction.course.depart }}</strong></div>
+                                <div class="course-info">→ {{ transaction.course.arrivee }}</div>
+                                <div class="course-info">Client: {{ transaction.course.nomClient }}</div>
+                            {% else %}
+                                <span style="color: #94a3b8;">Aucune course associée</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-data">
+                Aucune transaction trouvée pour les critères sélectionnés.
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <div>WayZo - Plateforme VTC de confiance</div>
+            <div class="footer-legal">
+                Ce document est généré automatiquement et ne constitue pas une facture officielle.
+                Pour toute question comptable, veuillez contacter votre service financier.
+            </div>
+            <div style="margin-top: 10px;">
+                Page 1 - Document généré le {{ generatedAt|date('d/m/Y à H:i:s') }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
